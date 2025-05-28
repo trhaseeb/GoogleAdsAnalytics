@@ -122,6 +122,10 @@ h1, h2 {
     padding: 10px;
 }
 
+.chart.single-chart-row {
+    width: 100%; /* For charts that should take up the full width */
+}
+
 /* DataTables styling adjustments */
 .dataTables_wrapper {
     margin-top: 20px;
@@ -166,8 +170,8 @@ h1, h2 {
 }
 
 .form-section {
-    flex: 1; /* Each form section takes equal width */
-    min-width: 300px; /* Minimum width before wrapping */
+    flex: 1;
+    min-width: 300px;
     background-color: #f9f9f9;
     padding: 25px;
     border-radius: 12px;
@@ -214,8 +218,8 @@ h1, h2 {
     margin-top: 20px;
     transition: background-color 0.3s ease;
     box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
-    width: 100%; /* Full width for buttons */
-    box-sizing: border-box; /* Include padding/border in width */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .form-section button[type="submit"]:hover,
@@ -225,7 +229,7 @@ h1, h2 {
 }
 
 #toggleCompanyInput {
-    background-color: #6c757d; /* Grey button for toggle */
+    background-color: #6c757d;
     box-shadow: none;
     font-size: 0.9rem;
     padding: 8px 15px;
@@ -254,6 +258,6 @@ h1, h2 {
         margin-bottom: 5px;
     }
     .chart {
-        width: 100%; /* Charts stack on small screens */
+        width: 100%;
     }
 }
