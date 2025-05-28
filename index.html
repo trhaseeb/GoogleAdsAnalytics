@@ -22,22 +22,32 @@
                 <input type="date" id="endDate">
                 <button id="applyFilter">Apply Filter</button>
             </div>
-            <div class="chart-toggles">
-                <h3>Toggle Metrics:</h3>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Conversions" checked> Conversions</label>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Spam" checked> Spam</label>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Unqualified Leads" checked> Unqualified Leads</label>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Qualified Leads" checked> Qualified Leads</label>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Cost" checked> Cost</label>
-                <label><input type="checkbox" class="chart-metric-toggle" data-metric="Contracts Signed" checked> Contracts Signed</label>
+            <div class="chart-options">
+                <h3>Chart Display Options:</h3>
+                <div class="chart-toggles">
+                    <label><input type="checkbox" class="chart-metric-toggle" data-metric="Conversions" checked> Conversions</label>
+                    <label><input type="checkbox" class="chart-metric-toggle" data-metric="Spam" checked> Spam</label>
+                    <label><input type="checkbox" class="chart-metric-toggle" data-metric="Unqualified Leads" checked> Unqualified Leads</label>
+                    <label><input type="checkbox" class="chart-metric-toggle" data-metric="Qualified Leads" checked> Qualified Leads</label>
+                    <label><input type="checkbox" class="chart-metric-toggle" data-metric="Contracts Signed" checked> Contracts Signed</label>
+                </div>
+                <div class="chart-type-selector">
+                    <label for="chartType">Chart Type:</label>
+                    <select id="chartType">
+                        <option value="line">Line</option>
+                        <option value="bar">Bar</option>
+                        <option value="area">Area</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         <div class="charts-container">
-            <div id="combinedChart" class="chart"></div>
+            <div id="combinedMetricsChart" class="chart"></div>
+            <div id="costChart" class="chart"></div>
         </div>
 
-        <h2>All Data Table</h2>
+        <h2>All Daily Data</h2>
         <table id="dataTable" class="display" style="width:100%">
             <thead>
                 <tr>
@@ -70,34 +80,65 @@
             </tbody>
         </table>
 
-        <h2>Add New Data</h2>
-        <form id="addDataForm">
-            <label for="newDataDate">Date:</label>
-            <input type="date" id="newDataDate" required><br>
+        <div class="forms-container">
+            <div class="form-section">
+                <h2>Add New Daily Data</h2>
+                <form id="addDailyDataForm">
+                    <label for="newDataDate">Date:</label>
+                    <input type="date" id="newDataDate" required><br>
 
-            <label for="newDataConversions">Conversions:</label>
-            <input type="number" step="0.01" id="newDataConversions" value="0"><br>
+                    <label for="newDataConversions">Conversions:</label>
+                    <input type="number" step="0.01" id="newDataConversions" value="0"><br>
 
-            <label for="newDataSpam">Spam:</label>
-            <input type="number" id="newDataSpam" value="0"><br>
+                    <label for="newDataSpam">Spam:</label>
+                    <input type="number" id="newDataSpam" value="0"><br>
 
-            <label for="newDataUnqualified">Unqualified Leads:</label>
-            <input type="number" id="newDataUnqualified" value="0"><br>
+                    <label for="newDataUnqualified">Unqualified Leads:</label>
+                    <input type="number" id="newDataUnqualified" value="0"><br>
 
-            <label for="newDataQualified">Qualified Leads:</label>
-            <input type="number" id="newDataQualified" value="0"><br>
+                    <label for="newDataQualified">Qualified Leads:</label>
+                    <input type="number" id="newDataQualified" value="0"><br>
 
-            <label for="newDataCost">Cost:</label>
-            <input type="number" step="0.01" id="newDataCost" value="0"><br>
+                    <label for="newDataCost">Cost:</label>
+                    <input type="number" step="0.01" id="newDataCost" value="0"><br>
 
-            <label for="newDataContracts">Contracts Signed:</label>
-            <input type="number" id="newDataContracts" value="0"><br>
+                    <label for="newDataContracts">Contracts Signed (Count):</label>
+                    <input type="number" id="newDataContracts" value="0"><br>
 
-            <label for="newDataCompany">Company Name:</label>
-            <input type="text" id="newDataCompany" value="N/A"><br>
+                    <label for="newDataCompany">Company Name (Daily Aggregate):</label>
+                    <input type="text" id="newDataCompany" value="N/A"><br>
 
-            <button type="submit">Add Data</button>
-        </form>
+                    <button type="submit">Add Daily Data</button>
+                </form>
+            </div>
+
+            <div class="form-section">
+                <h2>Add New Contract</h2>
+                <form id="addContractForm">
+                    <label for="newContractDate">Lead Date:</label>
+                    <input type="date" id="newContractDate" required><br>
+
+                    <label for="newContractLeadName">Lead Name:</label>
+                    <input type="text" id="newContractLeadName" required><br>
+
+                    <label for="newContractCompany">Company Name:</label>
+                    <select id="newContractCompany" required>
+                        <option value="">-- Select Company --</option>
+                        </select>
+                    <input type="text" id="newContractCompanyText" placeholder="Or enter new company name" style="display:none;"><br>
+                    <button type="button" id="toggleCompanyInput">Enter New Company</button><br>
+
+
+                    <label for="newContractServiceType">Service Type:</label>
+                    <input type="text" id="newContractServiceType" value="N/A"><br>
+
+                    <label for="newContractSignedDate">Contract Signed Date:</label>
+                    <input type="date" id="newContractSignedDate" required><br>
+
+                    <button type="submit">Add Contract</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
