@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return checkbox ? checkbox.checked : false;
     });
 
-    // Function to parse CSV
+    // Function to parse CSV more robustly
     async function parseCSV(file) {
         try {
             const response = await fetch(file);
@@ -20,21 +20,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const text = await response.text();
-            const lines = text.split('\n').filter(line => line.trim() !== '');
+            // Use split(/\r?\n/) to handle both Windows (\r\n) and Unix (\n) line endings
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
             if (lines.length === 0) {
                 console.warn(`CSV file ${file} is empty or contains no data.`);
                 return [];
             }
-            const headers = lines[0].split(',').map(header => header.trim());
+
+            // Regex for CSV splitting:
+            // It captures either:
+            // 1. A double-quoted field: "(?:""|[^"])*" (allows "" for escaped quotes)
+            // 2. Or, a sequence of non-comma characters: [^,]* (for unquoted fields)
+            // The `g` flag ensures all matches are found.
+            const CSV_SPLIT_REGEX = /(?:"(?:""|[^"])*"|[^,]*)/g;
+
+            // Extract headers and clean them (remove outer quotes, unescape inner quotes, trim)
+            const headers = lines[0].match(CSV_SPLIT_REGEX).map(header =>
+                header.startsWith('"') && header.endsWith('"')
+                    ? header.substring(1, header.length - 1).replace(/""/g, '"').trim()
+                    : header.trim()
+            );
+
             const data = [];
 
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(value => value.trim());
+                const rawValues = lines[i].match(CSV_SPLIT_REGEX);
+
+                if (!rawValues || rawValues.every(val => val.trim() === '')) { // Check for completely empty rows from regex
+                    console.warn(`Skipping empty or invalid row (no meaningful matches) in ${file}: "${lines[i]}"`);
+                    continue;
+                }
+
+                // Clean up captured values: remove outer quotes and unescape inner quotes
+                const values = rawValues.map(value =>
+                    value.startsWith('"') && value.endsWith('"')
+                        ? value.substring(1, value.length - 1).replace(/""/g, '"').trim()
+                        : value.trim()
+                );
+
                 if (values.length === headers.length) {
                     const row = {};
                     headers.forEach((header, index) => {
-                        // Attempt to convert to number if applicable, otherwise keep as string
                         const val = values[index];
+                        // Convert specific columns to numbers, default to 0 if parsing fails
                         if (['Conversions', 'Spam', 'Unqualified Leads', 'Qualified Leads', 'Cost', 'Contracts Signed'].includes(header)) {
                             row[header] = parseFloat(val) || 0;
                         } else {
@@ -43,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     data.push(row);
                 } else {
-                    console.warn(`Skipping malformed row in ${file}: "${lines[i]}"`);
+                    console.warn(`Skipping malformed row (column count mismatch) in ${file}: "${lines[i]}" - Expected ${headers.length}, got ${values.length}. Raw values: [${rawValues.join(', ')}]`);
                 }
             }
             return data;
@@ -183,6 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update DataTables directly using its API
         if (dataTableInstance) {
+            // DataTables provides a search API; using that is more efficient than re-creating the table
+            // This example re-populates which is fine for smaller datasets but can be optimized
             dataTableInstance.rows().remove().draw(); // Clear existing rows
             const tableData = filteredData.map(row => [
                 row.Date,
@@ -196,8 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
             dataTableInstance.rows.add(tableData).draw();
         }
-        // Note: qualifiedContractsData is not filtered by date in this setup,
-        // as it's a separate table of specific events. If needed, add similar filtering.
     });
 
     // Event listener for metric toggles
@@ -247,4 +275,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial data load when the page is ready
     loadAllData();
 });
-
