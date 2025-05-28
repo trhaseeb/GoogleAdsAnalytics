@@ -1,8 +1,8 @@
 body {
-    font-family: 'Inter', sans-serif; /* Using Inter font */
+    font-family: 'Inter', sans-serif;
     margin: 0;
     padding: 20px;
-    background-color: #f0f2f5; /* Light gray background */
+    background-color: #f0f2f5;
     color: #333;
 }
 
@@ -11,12 +11,12 @@ body {
     margin: 0 auto;
     background-color: #ffffff;
     padding: 25px;
-    border-radius: 12px; /* More rounded corners */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, larger shadow */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 h1, h2 {
-    color: #2c3e50; /* Darker, more professional blue */
+    color: #2c3e50;
     text-align: center;
     margin-bottom: 25px;
     font-weight: 600;
@@ -25,7 +25,7 @@ h1, h2 {
 .controls {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start; /* Align items to the top */
+    align-items: flex-start;
     margin-bottom: 30px;
     flex-wrap: wrap;
     gap: 20px;
@@ -35,16 +35,16 @@ h1, h2 {
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.date-filters, .chart-toggles {
-    flex: 1; /* Allow them to grow */
-    min-width: 280px; /* Minimum width for wrapping */
+.date-filters, .chart-options {
+    flex: 1;
+    min-width: 280px;
 }
 
 .date-filters label,
 .date-filters input,
 .date-filters button {
     margin-right: 10px;
-    margin-bottom: 10px; /* Add margin for stacking on small screens */
+    margin-bottom: 10px;
 }
 
 .date-filters input[type="date"] {
@@ -72,7 +72,7 @@ h1, h2 {
     box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
-.chart-toggles h3 {
+.chart-options h3 {
     margin-top: 0;
     margin-bottom: 10px;
     color: #495057;
@@ -80,7 +80,7 @@ h1, h2 {
 }
 
 .chart-toggles label {
-    display: inline-flex; /* Use inline-flex for better alignment of checkbox and text */
+    display: inline-flex;
     align-items: center;
     margin-right: 20px;
     margin-bottom: 8px;
@@ -91,7 +91,17 @@ h1, h2 {
 
 .chart-toggles input[type="checkbox"] {
     margin-right: 8px;
-    transform: scale(1.2); /* Slightly larger checkboxes */
+    transform: scale(1.2);
+}
+
+.chart-type-selector label {
+    margin-right: 10px;
+}
+.chart-type-selector select {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
 }
 
 
@@ -104,12 +114,12 @@ h1, h2 {
 }
 
 .chart {
-    width: 100%; /* Full width on small screens */
-    min-height: 400px; /* Increased height for better chart visibility */
+    width: calc(50% - 10px); /* Two charts per row on larger screens */
+    min-height: 400px;
     background-color: #e9e9e9;
     border-radius: 10px;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-    padding: 10px; /* Add some padding inside the chart div */
+    padding: 10px;
 }
 
 /* DataTables styling adjustments */
@@ -122,50 +132,67 @@ h1, h2 {
 }
 
 #dataTable, #contractsTable {
-    width: 100% !important; /* Ensure DataTables uses full width */
+    width: 100% !important;
     margin-top: 15px;
     border-collapse: collapse;
 }
 
 #dataTable th, #dataTable td,
 #contractsTable th, #contractsTable td {
-    border: 1px solid #e9ecef; /* Lighter border for tables */
-    padding: 12px 15px; /* More padding for readability */
+    border: 1px solid #e9ecef;
+    padding: 12px 15px;
     text-align: left;
     font-size: 0.9rem;
 }
 
 #dataTable th, #contractsTable th {
-    background-color: #e2e6ea; /* Slightly darker header background */
+    background-color: #e2e6ea;
     font-weight: 600;
     color: #495057;
 }
 
 #dataTable tbody tr:nth-child(even),
 #contractsTable tbody tr:nth-child(even) {
-    background-color: #f8f9fa; /* Zebra striping */
+    background-color: #f8f9fa;
 }
 
-/* Add New Data Form */
-#addDataForm {
+/* Forms Container */
+.forms-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 40px;
+    justify-content: center;
+}
+
+.form-section {
+    flex: 1; /* Each form section takes equal width */
+    min-width: 300px; /* Minimum width before wrapping */
     background-color: #f9f9f9;
     padding: 25px;
     border-radius: 12px;
-    margin-top: 40px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-#addDataForm label {
-    display: block; /* Stack labels and inputs */
+.form-section h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.form-section label {
+    display: block;
     margin-bottom: 8px;
     font-weight: bold;
     color: #495057;
 }
 
-#addDataForm input[type="date"],
-#addDataForm input[type="number"],
-#addDataForm input[type="text"] {
-    width: calc(100% - 22px); /* Account for padding and border */
+.form-section input[type="date"],
+.form-section input[type="number"],
+.form-section input[type="text"],
+.form-section select {
+    width: calc(100% - 22px);
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #ced4da;
@@ -174,7 +201,8 @@ h1, h2 {
     color: #495057;
 }
 
-#addDataForm button[type="submit"] {
+.form-section button[type="submit"],
+.form-section button[type="button"] {
     background-color: #28a745;
     color: white;
     padding: 12px 25px;
@@ -186,21 +214,35 @@ h1, h2 {
     margin-top: 20px;
     transition: background-color 0.3s ease;
     box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+    width: 100%; /* Full width for buttons */
+    box-sizing: border-box; /* Include padding/border in width */
 }
 
-#addDataForm button[type="submit"]:hover {
+.form-section button[type="submit"]:hover,
+.form-section button[type="button"]:hover {
     background-color: #218838;
     box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
+#toggleCompanyInput {
+    background-color: #6c757d; /* Grey button for toggle */
+    box-shadow: none;
+    font-size: 0.9rem;
+    padding: 8px 15px;
+    margin-bottom: 15px;
+}
+#toggleCompanyInput:hover {
+    background-color: #5a6268;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .controls {
+    .controls, .forms-container {
         flex-direction: column;
         align-items: stretch;
     }
-    .date-filters, .chart-toggles {
-        min-width: unset; /* Remove min-width for smaller screens */
+    .date-filters, .chart-options, .form-section {
+        min-width: unset;
         width: 100%;
     }
     .date-filters button {
@@ -211,5 +253,7 @@ h1, h2 {
         margin-right: 10px;
         margin-bottom: 5px;
     }
+    .chart {
+        width: 100%; /* Charts stack on small screens */
+    }
 }
-
