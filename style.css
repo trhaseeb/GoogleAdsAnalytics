@@ -1,0 +1,215 @@
+body {
+    font-family: 'Inter', sans-serif; /* Using Inter font */
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f2f5; /* Light gray background */
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 25px;
+    border-radius: 12px; /* More rounded corners */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, larger shadow */
+}
+
+h1, h2 {
+    color: #2c3e50; /* Darker, more professional blue */
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.date-filters, .chart-toggles {
+    flex: 1; /* Allow them to grow */
+    min-width: 280px; /* Minimum width for wrapping */
+}
+
+.date-filters label,
+.date-filters input,
+.date-filters button {
+    margin-right: 10px;
+    margin-bottom: 10px; /* Add margin for stacking on small screens */
+}
+
+.date-filters input[type="date"] {
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.date-filters button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.date-filters button:hover {
+    background-color: #0056b3;
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.chart-toggles h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.chart-toggles label {
+    display: inline-flex; /* Use inline-flex for better alignment of checkbox and text */
+    align-items: center;
+    margin-right: 20px;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+}
+
+.chart-toggles input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2); /* Slightly larger checkboxes */
+}
+
+
+.charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+.chart {
+    width: 100%; /* Full width on small screens */
+    min-height: 400px; /* Increased height for better chart visibility */
+    background-color: #e9e9e9;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    padding: 10px; /* Add some padding inside the chart div */
+}
+
+/* DataTables styling adjustments */
+.dataTables_wrapper {
+    margin-top: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    padding: 15px;
+}
+
+#dataTable, #contractsTable {
+    width: 100% !important; /* Ensure DataTables uses full width */
+    margin-top: 15px;
+    border-collapse: collapse;
+}
+
+#dataTable th, #dataTable td,
+#contractsTable th, #contractsTable td {
+    border: 1px solid #e9ecef; /* Lighter border for tables */
+    padding: 12px 15px; /* More padding for readability */
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+#dataTable th, #contractsTable th {
+    background-color: #e2e6ea; /* Slightly darker header background */
+    font-weight: 600;
+    color: #495057;
+}
+
+#dataTable tbody tr:nth-child(even),
+#contractsTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa; /* Zebra striping */
+}
+
+/* Add New Data Form */
+#addDataForm {
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 12px;
+    margin-top: 40px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+#addDataForm label {
+    display: block; /* Stack labels and inputs */
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #495057;
+}
+
+#addDataForm input[type="date"],
+#addDataForm input[type="number"],
+#addDataForm input[type="text"] {
+    width: calc(100% - 22px); /* Account for padding and border */
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #495057;
+}
+
+#addDataForm button[type="submit"] {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.05rem;
+    display: block;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+#addDataForm button[type="submit"]:hover {
+    background-color: #218838;
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .date-filters, .chart-toggles {
+        min-width: unset; /* Remove min-width for smaller screens */
+        width: 100%;
+    }
+    .date-filters button {
+        width: 100%;
+        margin-right: 0;
+    }
+    .chart-toggles label {
+        margin-right: 10px;
+        margin-bottom: 5px;
+    }
+}
+
