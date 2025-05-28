@@ -1,16 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
     let allData = []; // Stores data from master_data.csv
     let qualifiedContractsData = []; // Stores data from qualified_contracts.csv
+    let uniqueCompanyNames = new Set(); // To populate company dropdown
+
     let dataTableInstance;
     let contractsTableInstance;
 
-    const combinedChartDiv = document.getElementById('combinedChart');
+    const combinedMetricsChartDiv = document.getElementById('combinedMetricsChart');
+    const costChartDiv = document.getElementById('costChart');
     const metricToggles = document.querySelectorAll('.chart-metric-toggle');
-    const availableMetrics = ['Conversions', 'Spam', 'Unqualified Leads', 'Qualified Leads', 'Cost', 'Contracts Signed'];
+    const chartTypeSelect = document.getElementById('chartType');
+    const addDailyDataForm = document.getElementById('addDailyDataForm');
+    const addContractForm = document.getElementById('addContractForm');
+    const newContractCompanySelect = document.getElementById('newContractCompany');
+    const newContractCompanyTextInput = document.getElementById('newContractCompanyText');
+    const toggleCompanyInputButton = document.getElementById('toggleCompanyInput');
+
+
+    const availableMetrics = ['Conversions', 'Spam', 'Unqualified Leads', 'Qualified Leads', 'Contracts Signed'];
     let selectedMetrics = availableMetrics.filter(metric => {
         const checkbox = document.querySelector(`.chart-metric-toggle[data-metric="${metric}"]`);
         return checkbox ? checkbox.checked : false;
     });
+
+    let currentChartType = chartTypeSelect.value; // 'line', 'bar', 'area'
 
     // Function to parse CSV more robustly
     async function parseCSV(file) {
@@ -20,21 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const text = await response.text();
-            // Use split(/\r?\n/) to handle both Windows (\r\n) and Unix (\n) line endings
             const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
             if (lines.length === 0) {
                 console.warn(`CSV file ${file} is empty or contains no data.`);
                 return [];
             }
 
-            // Regex for CSV splitting:
-            // It captures either:
-            // 1. A double-quoted field: "(?:""|[^"])*" (allows "" for escaped quotes)
-            // 2. Or, a sequence of non-comma characters: [^,]* (for unquoted fields)
-            // The `g` flag ensures all matches are found.
             const CSV_SPLIT_REGEX = /(?:"(?:""|[^"])*"|[^,]*)/g;
 
-            // Extract headers and clean them (remove outer quotes, unescape inner quotes, trim)
             const headers = lines[0].match(CSV_SPLIT_REGEX).map(header =>
                 header.startsWith('"') && header.endsWith('"')
                     ? header.substring(1, header.length - 1).replace(/""/g, '"').trim()
@@ -46,53 +52,20 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 1; i < lines.length; i++) {
                 const rawValues = lines[i].match(CSV_SPLIT_REGEX);
 
-                if (!rawValues || rawValues.every(val => val.trim() === '')) { // Check for completely empty rows from regex
-                    console.warn(`Skipping empty or invalid row (no meaningful matches) in ${file}: "${lines[i]}"`);
+                if (!rawValues || rawValues.every(val => val.trim() === '')) {
                     continue;
                 }
 
-                // Clean up captured values: remove outer quotes and unescape inner quotes
                 const values = rawValues.map(value =>
-                    value.startsWith('"') && value.endsWith('"')
+                    value && value.startsWith('"') && value.endsWith('"')
                         ? value.substring(1, value.length - 1).replace(/""/g, '"').trim()
-                        : value.trim()
+                        : (value ? value.trim() : '') // Handle null/undefined value
                 );
 
                 if (values.length === headers.length) {
                     const row = {};
                     headers.forEach((header, index) => {
-                        const val = values[index];
-                        // Convert specific columns to numbers, default to 0 if parsing fails
-                        if (['Conversions', 'Spam', 'Unqualified Leads', 'Qualified Leads', 'Cost', 'Contracts Signed'].includes(header)) {
-                            row[header] = parseFloat(val) || 0;
-                        } else {
-                            row[header] = val;
-                        }
-                    });
-                    data.push(row);
-                } else {
-                    console.warn(`Skipping malformed row (column count mismatch) in ${file}: "${lines[i]}" - Expected ${headers.length}, got ${values.length}. Raw values: [${rawValues.join(', ')}]`);
-                }
-            }
-            return data;
-        } catch (error) {
-            console.error(`Error loading or parsing ${file}:`, error);
-            return [];
-        }
-    }
-
-    // Function to load all data from the master CSVs
-    async function loadAllData() {
-        allData = await parseCSV('master_data.csv');
-        qualifiedContractsData = await parseCSV('qualified_contracts.csv');
-
-        // Sort allData by date
-        allData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-        qualifiedContractsData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-
-        // Initial population and chart update
-        populateTables(allData, qualifiedContractsData);
-        updateCombinedChart(allData);
+                        const val = values[index];Update ion
     }
 
     // Function to populate DataTables
@@ -155,32 +128,69 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Function to update the combined chart
-    function updateCombinedChart(dataToChart) {
+    // Function to update both charts
+    function updateCharts(dataToChart) {
+        updateCombinedMetricsChart(dataToChart);
+        updateCostChart(dataToChart);
+    }
+
+    // Function to update the Combined Metrics Chart
+    function updateCombinedMetricsChart(dataToChart) {
         const dates = dataToChart.map(row => row.Date);
         const traces = [];
 
         selectedMetrics.forEach(metric => {
+            let traceType = currentChartType;
+            if (currentChartType === 'area') { // Plotly 'area' is 'scatter' with 'fill'
+                traceType = 'scatter';
+            }
+
             traces.push({
                 x: dates,
                 y: dataToChart.map(row => row[metric]),
-                mode: 'lines+markers',
+                mode: 'lines+markers', // Always show markers for clarity, can be changed
+                type: traceType,
                 name: metric,
-                // Assign different colors for better distinction
-                line: { color: getColorForMetric(metric) }
+                line: { color: getColorForMetric(metric) },
+                fill: currentChartType === 'area' ? 'tozeroy' : 'none', // Fill for area charts
+                stackgroup: (metric === 'Spam' || metric === 'Unqualified Leads' || metric === 'Qualified Leads') && currentChartType === 'bar' ? 'leads' : undefined // Stack leads if bar chart
             });
         });
 
         const layout = {
-            title: 'Key Business Metrics Over Time',
+            title: 'Key Business Metrics (Excluding Cost) Over Time',
             xaxis: { title: 'Date', type: 'date' },
             yaxis: { title: 'Value', automargin: true },
             hovermode: 'closest',
-            legend: { orientation: 'h', y: -0.2 } // Horizontal legend at the bottom
+            legend: { orientation: 'h', y: -0.2 }
         };
 
-        Plotly.newPlot(combinedChartDiv, traces, layout);
+        Plotly.newPlot(combinedMetricsChartDiv, traces, layout);
     }
+
+    // Function to update the Cost Chart
+    function updateCostChart(dataToChart) {
+        const dates = dataToChart.map(row => row.Date);
+        const costTrace = {
+            x: dates,
+            y: dataToChart.map(row => row.Cost),
+            mode: 'lines+markers',
+            type: currentChartType, // Use selected chart type for cost as well
+            name: 'Cost',
+            line: { color: '#9467bd' }, // Consistent purple color for cost
+            fill: currentChartType === 'area' ? 'tozeroy' : 'none'
+        };
+
+        const layout = {
+            title: 'Daily Cost Over Time',
+            xaxis: { title: 'Date', type: 'date' },
+            yaxis: { title: 'Cost (USD)', automargin: true },
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot(costChartDiv, [costTrace], layout);
+    }
+
 
     // Helper function to get a consistent color for each metric
     function getColorForMetric(metric) {
@@ -189,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'Spam': return '#ff7f0e'; // orange
             case 'Unqualified Leads': return '#2ca02c'; // green
             case 'Qualified Leads': return '#d62728'; // red
+            // Cost is handled separately, but included for completeness if ever needed here
             case 'Cost': return '#9467bd'; // purple
             case 'Contracts Signed': return '#8c564b'; // brown
             default: return '#7f7f7f'; // grey
@@ -207,13 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return rowDate >= new Date(startDate) && rowDate <= new Date(endDate);
             });
         }
-        updateCombinedChart(filteredData);
+        updateCharts(filteredData);
 
         // Update DataTables directly using its API
         if (dataTableInstance) {
-            // DataTables provides a search API; using that is more efficient than re-creating the table
-            // This example re-populates which is fine for smaller datasets but can be optimized
-            dataTableInstance.rows().remove().draw(); // Clear existing rows
+            dataTableInstance.rows().remove().draw();
             const tableData = filteredData.map(row => [
                 row.Date,
                 row.Conversions.toFixed(2),
@@ -239,12 +248,49 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 selectedMetrics = selectedMetrics.filter(m => m !== metric);
             }
-            updateCombinedChart(allData); // Re-render chart with current data and new metric selection
+            updateCombinedMetricsChart(allData); // Only update combined chart
         });
     });
 
-    // Add New Data functionality (client-side only)
-    document.getElementById('addDataForm').addEventListener('submit', (event) => {
+    // Event listener for chart type selection
+    chartTypeSelect.addEventListener('change', (event) => {
+        currentChartType = event.target.value;
+        updateCharts(allData); // Update both charts with new type
+    });
+
+    // Populate Company Dropdown
+    function populateCompanyDropdown() {
+        newContractCompanySelect.innerHTML = '<option value="">-- Select Company --</option>';
+        const sortedCompanies = Array.from(uniqueCompanyNames).sort();
+        sortedCompanies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company;
+            option.textContent = company;
+            newContractCompanySelect.appendChild(option);
+        });
+    }
+
+    // Toggle Company Name input type
+    toggleCompanyInputButton.addEventListener('click', () => {
+        const isSelectVisible = newContractCompanySelect.style.display !== 'none';
+        if (isSelectVisible) {
+            newContractCompanySelect.style.display = 'none';
+            newContractCompanyTextInput.style.display = 'block';
+            newContractCompanyTextInput.setAttribute('required', 'true');
+            newContractCompanySelect.removeAttribute('required');
+            toggleCompanyInputButton.textContent = 'Select Existing Company';
+        } else {
+            newContractCompanySelect.style.display = 'block';
+            newContractCompanyTextInput.style.display = 'none';
+            newContractCompanyTextInput.removeAttribute('required');
+            newContractCompanySelect.setAttribute('required', 'true');
+            toggleCompanyInputButton.textContent = 'Enter New Company';
+        }
+    });
+
+
+    // Add New Daily Data functionality (client-side only)
+    addDailyDataForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
         const newEntry = {
@@ -258,19 +304,63 @@ document.addEventListener('DOMContentLoaded', () => {
             'Company Name': document.getElementById('newDataCompany').value || 'N/A'
         };
 
-        // Add new entry to allData and re-sort
         allData.push(newEntry);
         allData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-        // Re-populate tables and update charts with new data
-        // For simplicity, we re-load all data and regenerate tables/charts.
-        // In a real application with more data, you'd update more efficiently.
-        populateTables(allData, qualifiedContractsData); // Pass qualifiedContractsData as it's not affected by this form
-        updateCombinedChart(allData);
+        populateTables(allData, qualifiedContractsData);
+        updateCharts(allData);
 
-        // Clear form
-        event.target.reset();
+        addDailyDataForm.reset();
     });
+
+    // Add New Contract functionality (client-side only)
+    addContractForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const selectedCompany = newContractCompanySelect.style.display !== 'none'
+                                ? newContractCompanySelect.value
+                                : newContractCompanyTextInput.value;
+
+        if (!selectedCompany) {
+            alert("Please select or enter a Company Name.");
+            return;
+        }
+
+        const newContract = {
+            Date: document.getElementById('newContractDate').value, // Lead Date
+            'Lead Name': document.getElementById('newContractLeadName').value,
+            'Company Name': selectedCompany,
+            'Service Type': document.getElementById('newContractServiceType').value || 'N/A',
+            'Contract Date': document.getElementById('newContractSignedDate').value
+        };
+
+        qualifiedContractsData.push(newContract);
+        qualifiedContractsData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+        // Important: If this contract adds to 'Contracts Signed' for a *new* date or increases count for an *existing* date
+        // in master_data.csv, you would need to update allData as well.
+        // For simplicity and client-side nature, this form ONLY updates the 'qualified_contracts' table.
+        // A full integration would require logic to find/update the corresponding daily aggregate in `allData`.
+        // For now, if you add a contract here and want it reflected in the daily "Contracts Signed" count,
+        // you would manually adjust the "Add Daily Data" form for that date.
+        // Alternatively, the prompt was for a suggestion on data entry, so we'll leave it as separate.
+
+        populateTables(allData, qualifiedContractsData); // Re-populate to show new contract
+
+        // Add new company to dropdown if it's a new entry
+        if (selectedCompany && !uniqueCompanyNames.has(selectedCompany)) {
+            uniqueCompanyNames.add(selectedCompany);
+            populateCompanyDropdown();
+        }
+
+        addContractForm.reset();
+        newContractCompanyTextInput.style.display = 'none'; // Hide text input after submission
+        newContractCompanySelect.style.display = 'block'; // Show select again
+        toggleCompanyInputButton.textContent = 'Enter New Company';
+        newContractCompanySelect.setAttribute('required', 'true');
+        newContractCompanyTextInput.removeAttribute('required');
+    });
+
 
     // Initial data load when the page is ready
     loadAllData();
