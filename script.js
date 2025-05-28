@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const combinedMetricsChartDiv = document.getElementById('combinedMetricsChart');
     const costChartDiv = document.getElementById('costChart');
+    const leadStatusChartDiv = document.getElementById('leadStatusChart'); // New chart div
     const metricToggles = document.querySelectorAll('.chart-metric-toggle');
     const chartTypeSelect = document.getElementById('chartType');
     const addDailyDataForm = document.getElementById('addDailyDataForm');
@@ -132,6 +133,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     }
 
+    // Function to process lead status overview data
+    function processLeadStatusOverview(aggregatedData) {
+        let totalSpam = 0;
+        let totalUnqualified = 0;
+        let totalQualified = 0;
+        let totalContractsSigned = 0;
+
+        aggregatedData.forEach(row => {
+            totalSpam += row.Spam;
+            totalUnqualified += row['Unqualified Leads'];
+            totalQualified += row['Qualified Leads'];
+            totalContractsSigned += row['Contracts Signed'];
+        });
+
+        return [
+            { status: 'Spam Leads', count: totalSpam },
+            { status: 'Unqualified Leads', count: totalUnqualified },
+            { status: 'Qualified Leads', count: totalQualified },
+            { status: 'Contracts Signed', count: totalContractsSigned }
+        ];
+    }
+
+
     // Function to load all data from the master CSVs
     async function loadAllData() {
         console.log("loadAllData called. Attempting to parse CSVs...");
@@ -170,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         populateTables(allRawData, qualifiedContractsData); // Populate main table with raw data
         console.log("Updating charts...");
         updateCharts(dailyAggregatedData); // Update charts with aggregated data
+        updateLeadStatusChart(dailyAggregatedData); // Update the new lead status chart
         console.log("loadAllData finished.");
     }
 
@@ -231,8 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Tables populated.");
     }
 
-    // Function to update both charts
-    function updateCharts(dataToChart) {
+    // Function to update all charts (combined metrics, cost, and lead status)
+    function updateCharts(dataToChart) { // dataToChart here is dailyAggregatedData
         console.log("updateCharts called with data length:", dataToChart.length);
         updateCombinedMetricsChart(dataToChart);
         updateCostChart(dataToChart);
@@ -257,10 +282,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 mode: 'lines+markers',
                 type: traceType,
                 name: metric,
-                line: { color: getColorForMetric(metric) },
+                line: {
+                    color: getColorForMetric(metric),
+                    // Make Contracts Signed more prominent
+                    width: metric === 'Contracts Signed' ? 3 : 1, // Thicker line
+                    dash: metric === 'Contracts Signed' ? 'dot' : 'solid' // Dotted line
+                },
+                marker: {
+                    symbol: metric === 'Contracts Signed' ? 'star' : 'circle', // Star markers
+                    size: metric === 'Contracts Signed' ? 8 : 6
+                },
                 fill: currentChartType === 'area' ? 'tozeroy' : 'none',
                 stackgroup: (metric === 'Spam' || metric === 'Unqualified Leads' || metric === 'Qualified Leads') && currentChartType === 'bar' ? 'leads' : undefined
             });
+
+            // Debug log for Contracts Signed Y values
+            if (metric === 'Contracts Signed') {
+                console.log("Contracts Signed Y values for combinedMetricsChart:", dataToChart.map(row => row[metric]));
+            }
         });
 
         const layout = {
@@ -308,6 +347,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Function to update the Lead Status Overview Chart
+    function updateLeadStatusChart(aggregatedData) { // Use dailyAggregatedData for overall totals
+        console.log("updateLeadStatusChart called.");
+        const leadStatusCounts = processLeadStatusOverview(aggregatedData);
+
+        const statuses = leadStatusCounts.map(item => item.status);
+        const counts = leadStatusCounts.map(item => item.count);
+
+        const trace = {
+            x: statuses,
+            y: counts,
+            type: 'bar', // A bar chart is suitable for this overview
+            marker: {
+                color: [
+                    '#ff7f0e', // Spam (orange)
+                    '#2ca02c', // Unqualified (green)
+                    '#d62728', // Qualified (red)
+                    '#8c564b'  // Contracts Signed (brown)
+                ]
+            }
+        };
+
+        const layout = {
+            title: 'Total Lead Pipeline Overview',
+            xaxis: { title: 'Lead Status', automargin: true },
+            yaxis: { title: 'Total Count', automargin: true },
+            hovermode: 'closest'
+        };
+
+        if (typeof Plotly !== 'undefined' && Plotly.newPlot) {
+            console.log("Plotly is available. Calling newPlot for leadStatusChart.");
+            Plotly.newPlot(leadStatusChartDiv, [trace], layout);
+        } else {
+            console.error("Plotly is not available or newPlot is not a function in updateLeadStatusChart.");
+        }
+    }
+
 
     // Helper function to get a consistent color for each metric
     function getColorForMetric(metric) {
@@ -349,6 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         console.log("Filtered aggregated data length for charts:", filteredAggregatedData.length);
         updateCharts(filteredAggregatedData);
+        // Lead status chart is overall, not filtered by date, but re-render if data changes
+        updateLeadStatusChart(dailyAggregatedData); // Use full aggregated data for overall view
     });
 
     // Event listener for metric toggles
@@ -371,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chartTypeSelect.addEventListener('change', (event) => {
         currentChartType = event.target.value;
         console.log("Chart type changed to:", currentChartType);
-        updateCharts(dailyAggregatedData); // Update both charts with new type using aggregated data
+        updateCharts(dailyAggregatedData); // Update both time-series charts with new type
     });
 
     // Populate Company Dropdown
@@ -432,8 +510,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dailyAggregatedData = aggregateDailyData(allRawData);
 
         // Update tables and charts
-        populateTables(allRawData, qualifiedContractsData);
-        updateCharts(dailyAggregatedData);
+        populateTables(allRawData, qualifiedContractsData); // Table with raw data
+        updateCharts(dailyAggregatedData); // Time-series charts with aggregated data
+        updateLeadStatusChart(dailyAggregatedData); // Lead status chart with aggregated data
 
         addDailyDataForm.reset();
         console.log("New daily data added:", newEntry);
@@ -465,11 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         qualifiedContractsData.push(newContract);
         qualifiedContractsData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-        // Update the main data table to reflect potential changes in daily aggregates
-        // This is a simplified approach. In a real app, you'd update the daily aggregate
-        // for the specific date of the new contract.
-        // For now, we'll just re-populate the qualified contracts table.
-        populateTables(allRawData, qualifiedContractsData);
+        populateTables(allRawData, qualifiedContractsData); // Update main table (using raw data) and contracts table
 
         // Add new company to dropdown if it's a new entry
         if (selectedCompany && !uniqueCompanyNames.has(selectedCompany)) {
