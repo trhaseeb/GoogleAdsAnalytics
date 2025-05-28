@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Script started. DOMContentLoaded event listener added.");
 
-    let allData = []; // Stores data from master_data.csv
+    let allRawData = []; // Stores raw event-level data from master_data.csv for the table
+    let dailyAggregatedData = []; // Stores daily aggregated data for charts
     let qualifiedContractsData = []; // Stores data from qualified_contracts.csv
     let uniqueCompanyNames = new Set(); // To populate company dropdown
 
@@ -38,11 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const text = await response.text();
             console.log(`Raw CSV text length for ${file}: ${text.length}`);
-            
-            // Use split(/\r?\n/) to handle both Windows (\r\n) and Unix (\n) line endings
+
             const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
             console.log(`Number of lines parsed for ${file}: ${lines.length}`);
-            
+
             if (lines.length === 0) {
                 console.warn(`CSV file ${file} is empty or contains no data.`);
                 return [];
@@ -50,11 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const CSV_SPLIT_REGEX = /(?:"(?:""|[^"])*"|[^,]*)/g;
 
-            // Extract headers and clean them (remove outer quotes, unescape inner quotes, trim)
             const headerLineMatch = lines[0].match(CSV_SPLIT_REGEX);
             if (!headerLineMatch) {
                 console.error(`Could not parse headers for file: ${file}. Line: "${lines[0]}"`);
-                return []; // Return empty if headers can't be parsed
+                return [];
             }
             const headers = headerLineMatch.map(header =>
                 header.startsWith('"') && header.endsWith('"')
@@ -69,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rawValues = lines[i].match(CSV_SPLIT_REGEX);
 
                 if (!rawValues || rawValues.every(val => val.trim() === '')) {
-                    continue; // Skip empty rows or rows with no matches
+                    continue;
                 }
 
                 const values = rawValues.map(value =>
@@ -105,20 +104,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Function to aggregate raw data into daily totals for charts
+    function aggregateDailyData(rawData) {
+        const aggregated = {};
+        rawData.forEach(row => {
+            const date = row.Date;
+            if (!aggregated[date]) {
+                aggregated[date] = {
+                    Date: date,
+                    Conversions: 0,
+                    Spam: 0,
+                    'Unqualified Leads': 0,
+                    'Qualified Leads': 0,
+                    Cost: 0,
+                    'Contracts Signed': 0
+                };
+            }
+            aggregated[date].Conversions += row.Conversions;
+            aggregated[date].Spam += row.Spam;
+            aggregated[date]['Unqualified Leads'] += row['Unqualified Leads'];
+            aggregated[date]['Qualified Leads'] += row['Qualified Leads'];
+            aggregated[date].Cost += row.Cost;
+            aggregated[date]['Contracts Signed'] += row['Contracts Signed'];
+        });
+        const result = Object.values(aggregated);
+        result.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        return result;
+    }
+
     // Function to load all data from the master CSVs
     async function loadAllData() {
         console.log("loadAllData called. Attempting to parse CSVs...");
-        allData = await parseCSV('master_data.csv');
+        allRawData = await parseCSV('master_data.csv');
         qualifiedContractsData = await parseCSV('qualified_contracts.csv');
 
+        // Aggregate raw data for charting purposes
+        dailyAggregatedData = aggregateDailyData(allRawData);
+
         console.log("Data loaded:");
-        console.log("  allData (length, first row):", allData.length, allData.length > 0 ? allData[0] : 'N/A');
+        console.log("  allRawData (length, first row):", allRawData.length, allRawData.length > 0 ? allRawData[0] : 'N/A');
+        console.log("  dailyAggregatedData (length, first row):", dailyAggregatedData.length, dailyAggregatedData.length > 0 ? dailyAggregatedData[0] : 'N/A');
         console.log("  qualifiedContractsData (length, first row):", qualifiedContractsData.length, qualifiedContractsData.length > 0 ? qualifiedContractsData[0] : 'N/A');
-
-
-        // Sort allData by date
-        allData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-        qualifiedContractsData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
         // Extract unique company names for the dropdown
         uniqueCompanyNames.clear();
@@ -129,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        allData.forEach(row => {
+        allRawData.forEach(row => { // Use allRawData for company names
             if (row['Company Name'] && row['Company Name'] !== 'N/A') {
                  row['Company Name'].split(',').forEach(company => {
                     uniqueCompanyNames.add(company.trim());
@@ -141,9 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         populateCompanyDropdown();
         console.log("Populating tables...");
-        populateTables(allData, qualifiedContractsData);
+        populateTables(allRawData, qualifiedContractsData); // Populate main table with raw data
         console.log("Updating charts...");
-        updateCharts(allData); // Call the new unified update function
+        updateCharts(dailyAggregatedData); // Update charts with aggregated data
         console.log("loadAllData finished.");
     }
 
@@ -156,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contractsTableInstance.destroy();
         }
 
+        // Populate main data table with raw event-level data
         const tableBody = document.querySelector('#dataTable tbody');
         tableBody.innerHTML = '';
         data.forEach(row => {
@@ -180,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             info: true
         });
 
+        // Populate qualified contracts table
         const contractsTableBody = document.querySelector('#contractsTable tbody');
         contractsTableBody.innerHTML = '';
         contractsData.forEach(row => {
@@ -220,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedMetrics.forEach(metric => {
             let traceType = currentChartType;
             if (currentChartType === 'area') {
-                traceType = 'scatter'; // Plotly 'area' is 'scatter' with 'fill'
+                traceType = 'scatter';
             }
 
             traces.push({
@@ -243,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
             legend: { orientation: 'h', y: -0.2 }
         };
 
-        // Check if Plotly is available and initialized before plotting
         if (typeof Plotly !== 'undefined' && Plotly.newPlot) {
             console.log("Plotly is available. Calling newPlot for combinedMetricsChart.");
             Plotly.newPlot(combinedMetricsChartDiv, traces, layout);
@@ -301,31 +328,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = document.getElementById('startDate').value;
         const endDate = document.getElementById('endDate').value;
 
-        let filteredData = allData;
+        // Filter raw data for the table
+        let filteredRawData = allRawData;
         if (startDate && endDate) {
-            filteredData = allData.filter(row => {
+            filteredRawData = allRawData.filter(row => {
                 const rowDate = new Date(row.Date);
                 return rowDate >= new Date(startDate) && rowDate <= new Date(endDate);
             });
         }
-        console.log("Filtered data length:", filteredData.length);
-        updateCharts(filteredData);
+        console.log("Filtered raw data length for table:", filteredRawData.length);
+        populateTables(filteredRawData, qualifiedContractsData); // Update table with filtered raw data
 
-        if (dataTableInstance) {
-            dataTableInstance.rows().remove().draw();
-            const tableData = filteredData.map(row => [
-                row.Date,
-                row.Conversions.toFixed(2),
-                row.Spam,
-                row['Unqualified Leads'],
-                row['Qualified Leads'],
-                row.Cost.toFixed(2),
-                row['Contracts Signed'],
-                row['Company Name']
-            ]);
-            dataTableInstance.rows.add(tableData).draw();
-            console.log("DataTable updated with filtered data.");
+        // Filter and re-aggregate data for charts
+        let filteredAggregatedData = dailyAggregatedData;
+        if (startDate && endDate) {
+            filteredAggregatedData = dailyAggregatedData.filter(row => {
+                const rowDate = new Date(row.Date);
+                return rowDate >= new Date(startDate) && rowDate <= new Date(endDate);
+            });
         }
+        console.log("Filtered aggregated data length for charts:", filteredAggregatedData.length);
+        updateCharts(filteredAggregatedData);
     });
 
     // Event listener for metric toggles
@@ -340,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 selectedMetrics = selectedMetrics.filter(m => m !== metric);
             }
-            updateCombinedMetricsChart(allData);
+            updateCombinedMetricsChart(dailyAggregatedData); // Update combined chart with aggregated data
         });
     });
 
@@ -348,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chartTypeSelect.addEventListener('change', (event) => {
         currentChartType = event.target.value;
         console.log("Chart type changed to:", currentChartType);
-        updateCharts(allData);
+        updateCharts(dailyAggregatedData); // Update both charts with new type using aggregated data
     });
 
     // Populate Company Dropdown
@@ -402,11 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'Company Name': document.getElementById('newDataCompany').value || 'N/A'
         };
 
-        allData.push(newEntry);
-        allData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        allRawData.push(newEntry);
+        allRawData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-        populateTables(allData, qualifiedContractsData);
-        updateCharts(allData);
+        // Re-aggregate data for charts
+        dailyAggregatedData = aggregateDailyData(allRawData);
+
+        // Update tables and charts
+        populateTables(allRawData, qualifiedContractsData);
+        updateCharts(dailyAggregatedData);
 
         addDailyDataForm.reset();
         console.log("New daily data added:", newEntry);
@@ -438,8 +465,13 @@ document.addEventListener('DOMContentLoaded', () => {
         qualifiedContractsData.push(newContract);
         qualifiedContractsData.sort((a, b) => new Date(a.Date) - new Date(b.Date));
 
-        populateTables(allData, qualifiedContractsData);
+        // Update the main data table to reflect potential changes in daily aggregates
+        // This is a simplified approach. In a real app, you'd update the daily aggregate
+        // for the specific date of the new contract.
+        // For now, we'll just re-populate the qualified contracts table.
+        populateTables(allRawData, qualifiedContractsData);
 
+        // Add new company to dropdown if it's a new entry
         if (selectedCompany && !uniqueCompanyNames.has(selectedCompany)) {
             uniqueCompanyNames.add(selectedCompany);
             populateCompanyDropdown();
